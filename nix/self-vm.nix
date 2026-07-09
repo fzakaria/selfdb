@@ -4,6 +4,7 @@
 #     file $(command -v hello-self) ; hello-self
 #     self info $(command -v hello-self)
 {
+  config,
   lib,
   pkgs,
   selfify,
@@ -53,12 +54,17 @@
       chmod +x hello.self
       echo "== file(1) sees a database:"
       ${pkgs.file}/bin/file hello.self
-      echo "== running ./hello.self via binfmt_misc:"
+      echo "== running ./hello.self via binfmt_misc (mode=$SELF_MODE):"
       ./hello.self; rc=$?
       echo "exit=$rc"
       out="$(./hello.self)"
       echo "output=[$out]"
       test "$out" = "Hello, world!" && echo "SELF-DEMO-OK" || echo "SELF-DEMO-FAIL"
+
+      echo "== same file, native loader (map segments + ld.so handoff):"
+      out2="$(SELF_MODE=native ${config.programs.self.package}/bin/self-exec ./hello.self)"
+      echo "native-output=[$out2]"
+      test "$out2" = "Hello, world!" && echo "SELF-NATIVE-OK" || echo "SELF-NATIVE-FAIL"
     '';
   };
 

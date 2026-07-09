@@ -44,13 +44,18 @@ for mode in memfd native; do
 	pass "$mode: hello runs, argv threaded, exit code propagated ($rc)"
 done
 
-# a real nixpkgs multi-call binary. coreutils dispatches on basename(argv[0]),
-# so the .self must be named 'ls' (the kernel's binfmt 'P' flag handles this
-# in the real path; by direct invocation we just name the file accordingly).
-python -m selfconv.elf2self "$(command -v ls)" ls
-"$(command -v ls)" -1 /nix/store > exp_ls.txt
-SELF_MODE=${SELF_MODE_LS:-memfd} "$SELF_EXEC" ./ls -1 /nix/store > got_ls.txt
-diff exp_ls.txt got_ls.txt
-pass "memfd: nixpkgs ls via loader matches native ls"
+# real nixpkgs binaries in both modes. coreutils dispatches on
+# basename(argv[0]), so the .self is named 'ls' (self-exec sets the target's
+# argv[0] to the file path, whose basename is 'ls').
+for prog in ls readlink; do
+	src="$(command -v $prog)"
+	python -m selfconv.elf2self "$src" "$prog"
+	for mode in memfd native; do
+		"$src" --version | head -1 > "exp_$prog.txt"
+		SELF_MODE=$mode "$SELF_EXEC" "./$prog" --version | head -1 > "got_${prog}_$mode.txt"
+		diff "exp_$prog.txt" "got_${prog}_$mode.txt"
+		pass "$mode: nixpkgs $prog via loader matches native"
+	done
+done
 
-echo "LOADER TESTS PASSED (${SELF_MODES:-memfd native})"
+echo "LOADER TESTS PASSED (memfd + native)"

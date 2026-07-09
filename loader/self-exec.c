@@ -71,6 +71,21 @@ int64_t self_meta_int(sqlite3 *db, const char *key) {
 	return v;
 }
 
+char *self_meta_text(sqlite3 *db, const char *key) {
+	sqlite3_stmt *st;
+	sqlite3_prepare_v2(db, "SELECT value FROM self_meta WHERE key=?", -1, &st, NULL);
+	sqlite3_bind_text(st, 1, key, -1, SQLITE_STATIC);
+	char *v = NULL;
+	if (sqlite3_step(st) == SQLITE_ROW &&
+	    sqlite3_column_type(st, 0) != SQLITE_NULL) {
+		const char *s = (const char *)sqlite3_column_text(st, 0);
+		if (s)
+			v = strdup(s);
+	}
+	sqlite3_finalize(st);
+	return v;
+}
+
 /* Reconstruct the ELF image from self_meta + segments into a fresh buffer.
  * Byte-for-byte identical to selfconv.elfimage.serialize_image. */
 static uint8_t *build_image(sqlite3 *db, size_t *out_len) {
