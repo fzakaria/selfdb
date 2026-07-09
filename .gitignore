@@ -1,0 +1,9 @@
+result
+result-*
+*.qcow2
+*.o
+loader/self-exec
+__pycache__/
+*.pyc
+*.self
+*.elf

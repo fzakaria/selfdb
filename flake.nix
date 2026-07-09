@@ -6,38 +6,70 @@
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { self, nixpkgs, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+
+      elf2self = pkgs.callPackage ./nix/elf2self.nix { };
+      self-exec = pkgs.callPackage ./nix/self-exec.nix { };
+      selfify = drv: pkgs.callPackage ./nix/selfify.nix { inherit elf2self; } drv;
     in
     {
-      # Packages (elf2self, self-exec, the NixOS self-vm) land here per the
-      # roadmap in DESIGN.md §11. Dev shell only for now.
+      packages.${system} = {
+        inherit elf2self self-exec;
+        default = self-exec;
+        # a converted GNU hello, for `nix build .#hello-self`
+        hello-self = selfify pkgs.hello;
+      };
+
+      # importable: `imports = [ selfdb.nixosModules.default ];` then set
+      # programs.self.enable = true. (Pass self-exec via specialArgs, or use
+      # the overlay below which puts self-exec in pkgs.)
+      nixosModules.default =
+        { ... }:
+        {
+          imports = [ ./nix/module.nix ];
+          _module.args.self-exec = self-exec;
+        };
+
+      overlays.default = final: _prev: {
+        self-exec = final.callPackage ./nix/self-exec.nix { };
+        elf2self = final.callPackage ./nix/elf2self.nix { };
+        selfify = drv: final.callPackage ./nix/selfify.nix { elf2self = final.elf2self; } drv;
+      };
+
+      # `nix run .#self-vm` -> a NixOS VM running SELF binaries via binfmt.
+      nixosConfigurations.self-vm = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          (import ./nix/self-vm.nix)
+          { _module.args = { inherit selfify elf2self self-exec; }; }
+        ];
+      };
+
+      apps.${system}.self-vm = {
+        type = "app";
+        program = "${self.outputs.nixosConfigurations.self-vm.config.system.build.vm}/bin/run-nixos-vm";
+      };
+
       devShells.${system}.default = pkgs.mkShell {
         packages = [
-          # converter (M0): python + LIEF, reusing sqlelf's extractors
           (pkgs.python3.withPackages (
             ps: with ps; [
               lief
               capstone
             ]
           ))
-          pkgs.sqlite # sqlite3 CLI + libsqlite3 for the loader
+          pkgs.sqlite
           pkgs.sqldiff
           pkgs.sqlite-analyzer
-
-          # loader (M1/M2): plain C against libsqlite3
           pkgs.gcc
           pkgs.pkg-config
-
-          # inspection / benchmarking
-          pkgs.binutils # readelf/nm — the tools we're retiring, for diffing
+          pkgs.binutils
           pkgs.patchelf
           pkgs.hyperfine
           pkgs.file
-
-          # VM demo (M1+)
           pkgs.qemu
         ];
       };
