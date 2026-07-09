@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "selfconv"
+version = "0.1.0"
+description = "Converters between ELF and the SELF (SQLite) executable format"
+requires-python = ">=3.11"
+dependencies = ["lief"]
+
+[project.scripts]
+elf2self = "selfconv.elf2self:main"
+self2elf = "selfconv.self2elf:main"
+self = "selfconv.cli:main"
+
+[tool.setuptools]
+packages = ["selfconv"]
