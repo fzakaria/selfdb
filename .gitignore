@@ -2,7 +2,9 @@ result
 result-*
 *.qcow2
 *.o
+*.so
 loader/self-exec
+loader/libself-audit.so
 __pycache__/
 *.pyc
 *.self

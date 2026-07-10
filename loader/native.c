@@ -25,6 +25,7 @@
 
 #include <sqlite3.h>
 
+#include "image.h"
 #include "self.h"
 
 #define PAGE 4096UL
