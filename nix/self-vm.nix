@@ -68,6 +68,14 @@
     '';
   };
 
+  # Satisfy eval-time assertions for the system toplevel (so `nix flake
+  # check` passes); the qemu vmVariant provides its own root disk at runtime.
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
+  };
+  boot.loader.grub.device = "nodev";
+
   # minimal, fast-booting VM
   users.users.root.password = "";
   services.getty.autologinUser = "root";

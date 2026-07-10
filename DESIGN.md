@@ -3,7 +3,10 @@
 *An executable format that is a SQLite database — and a plan to boot real
 programs with it on NixOS.*
 
-> **Status**: design. Nothing here is implemented yet.
+> **Status**: M0–M3b implemented and tested (`nix develop -c bash tests/all.sh`);
+> see [§13 Implementation status](#13-implementation-status) for what's real,
+> what deviated from this plan, and what's still a stretch. The prose below is
+> the original design; §13 reconciles it with the code.
 > **Prior art by us**: [sqlelf](https://github.com/fzakaria/sqlelf) /
 > [arXiv:2405.03883](https://arxiv.org/abs/2405.03883), which put a SQL *view*
 > over ELF. SELF inverts that: the database *is* the format, and ELF becomes
@@ -571,3 +574,53 @@ selfdb/
 - Signatures table: minisign over a canonical serialization
   (`SELECT ... ORDER BY`) — worth designing early since "signing rows, not
   bytes" is a genuinely novel-feeling win.
+
+---
+
+## 13. Implementation status
+
+What actually got built, and where it diverged from the plan above. Run it
+all with `nix develop -c bash tests/all.sh`; boot the VM with
+`nix run .#self-vm` (login root, empty password).
+
+| Milestone | Status | Evidence |
+|---|---|---|
+| **M0** format + converter | ✅ done | `converter/selfconv/` (`elf2self`, `self2elf`, `self`), `schema/self.sql`; `tests/roundtrip.sh` round-trips `hello` + nixpkgs `ls`, strips via `DELETE`+`VACUUM`, still runs |
+| **M1** memfd loader | ✅ done | `loader/self-exec.c` + `image.c`; `nix/module.nix` binfmt registration; VM boots and runs `./hello.self` → `SELF-DEMO-OK` |
+| **M2** native loader | ✅ done | `loader/native.c` maps segments + ld.so, synth stack/auxv; `tests/loader.sh` runs `hello`/`ls`/`readlink` native; VM → `SELF-NATIVE-OK` |
+| **M3a** LD_AUDIT resolver | ✅ done | `loader/audit.c` (`libself-audit.so`); `tests/audit.sh` deletes the ELF `libgreet`, runs it from SQLite via stock glibc |
+| **M3b** self-ld binder | ✅ done (freestanding) | `loader/selfld.c`; `tests/selfld.sh` binds a no-libc app→lib closure via SQL, exit 42 |
+| **M4** kernel / mmap | ⏸ not started | stretch; see §8 |
+
+### Deviations from the design
+
+- **Schema.** `self_meta` is a real key/value table (as designed), but the
+  load-bearing rows are richer than §4's sketch: `segments` keeps each
+  program header's original **file `offset`** (not just vaddr), because the
+  loaders reconstruct a byte-exact image so `AT_PHDR` and offset/vaddr
+  congruence survive. `symbols` gained `shndx`/`source` (`dynsym` vs
+  `symtab`) so `exports`/`imports` views can filter correctly. `relocations`
+  stores both a readable `type` and the raw `rtype` number (self-ld needs the
+  number; humans want the name). The authoritative DDL lives in
+  `converter/selfconv/schema.py`, generated into `schema/self.sql`.
+- **binfmt flags.** The design proposed `O`+`F`+`P`. We ship with **none of
+  them**: `P` (preserve-argv0) makes the kernel inject the original `argv[0]`
+  as an extra leading operand that strict programs (GNU hello) reject.
+  Without it the kernel hands the interpreter `[self-exec, <path>, args…]`
+  and `basename(<path>)` still satisfies multi-call binaries like coreutils.
+- **M3b scope.** As anticipated in §5, `self-ld` targets a **freestanding
+  (no-libc)** closure, not glibc-without-its-rtld. It handles
+  `RELATIVE`/`GLOB_DAT`/`JUMP_SLOT`/`64` relocations and eager binding; TLS,
+  IFUNC and the libc↔rtld handshake are out of scope. Real glibc programs
+  get the "system is a database" treatment through **M3a** instead, which is
+  the more useful half anyway.
+- **Loader packaging.** The row→ELF serializer is factored into
+  `loader/image.c` (exit-free) and shared by `self-exec` and the audit
+  library; `self2elf` (Python) is its twin for round-trip testing.
+
+### Benchmarks (this host)
+
+See `bench/results.md`. Headline: memfd/native exec cost ~5× a bare exec
+(0.42 ms → ~2.1 ms — the reconstruct + open-SQLite + interpreter constant),
+and a **stripped** coreutils SELF (1.79 MB) lands within ~1% of the ELF
+(1.77 MB). No shared text pages yet (§8), which is the real perf gap to close.
