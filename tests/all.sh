@@ -3,7 +3,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 
-for t in roundtrip loader audit selfld; do
+for t in roundtrip loader audit selfld preload closure; do
 	printf '\n\033[1m=== tests/%s.sh ===\033[0m\n' "$t"
 	bash "$here/$t.sh"
 done

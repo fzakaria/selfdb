@@ -112,6 +112,15 @@ def main(argv=None) -> int:
     p.add_argument("--db", required=True)
     p.add_argument("paths", nargs="+")
     p.set_defaults(fn=cmd_scan)
+    p = sub.add_parser("closure",
+                       help="pack a binary + its whole closure into one DB")
+    p.add_argument("binary")
+    p.add_argument("out", nargs="?")
+    p.add_argument("--no-segments", action="store_true")
+    p.set_defaults(fn=lambda a: __import__(
+        "selfconv.closure", fromlist=["build_closure"]).build_closure(
+        a.binary, a.out or a.binary + ".closure.db",
+        with_segments=not a.no_segments) or 0)
     args = ap.parse_args(argv)
     return args.fn(args)
 

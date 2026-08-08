@@ -288,6 +288,24 @@ int run_selfld(sqlite3 *maindb, const char *path, char **argv, char **envp) {
 	}
 	sqlite3_finalize(st);
 
+	/* LD_PRELOAD, as a table. Any object in the resolver DB's `preload`
+	 * table is mapped LAST, so its exports are found first (export_find
+	 * returns the most-recently-added match) -- i.e. it interposes over the
+	 * closure. Enabling a preload is an INSERT; disabling it a DELETE; both
+	 * atomic. No such table (or no rdb) means no interposition. */
+	if (rdb) {
+		sqlite3_stmt *q;
+		if (sqlite3_prepare_v2(rdb, "SELECT path FROM preload ORDER BY ord",
+				       -1, &q, NULL) == SQLITE_OK) {
+			while (sqlite3_step(q) == SQLITE_ROW) {
+				const char *pp = (const char *)sqlite3_column_text(q, 0);
+				fprintf(stderr, "[selfld] preload %s\n", pp);
+				map_object(pp, &libs[nlibs++]);
+			}
+			sqlite3_finalize(q);
+		}
+	}
+
 	/* eager binding: relocate every object now that all exports are known */
 	for (int i = 0; i < nlibs; i++)
 		relocate(&libs[i], "lib");
