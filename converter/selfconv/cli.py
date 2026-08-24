@@ -112,15 +112,20 @@ def main(argv=None) -> int:
     p.add_argument("--db", required=True)
     p.add_argument("paths", nargs="+")
     p.set_defaults(fn=cmd_scan)
-    p = sub.add_parser("closure",
-                       help="pack a binary + its whole closure into one DB")
-    p.add_argument("binary")
-    p.add_argument("out", nargs="?")
-    p.add_argument("--no-segments", action="store_true")
-    p.set_defaults(fn=lambda a: __import__(
-        "selfconv.closure", fromlist=["build_closure"]).build_closure(
-        a.binary, a.out or a.binary + ".closure.db",
-        with_segments=not a.no_segments) or 0)
+    # Listed so `self -h` mentions it; never actually parsed here, because
+    # the arguments are dispatched below.
+    sub.add_parser("closure", add_help=False,
+                   help="pack binaries + their closures into one DB")
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # `closure` owns its own argument list. Restating it here is what let the
+    # two spellings drift apart, and REMAINDER cannot carry it: argparse
+    # matches a leading --flag against this parser before the subcommand ever
+    # sees it. So hand the tail over untouched.
+    if argv and argv[0] == "closure":
+        from . import closure
+        return closure.main(argv[1:])
+
     args = ap.parse_args(argv)
     return args.fn(args)
 
