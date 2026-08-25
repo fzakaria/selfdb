@@ -12,8 +12,8 @@
 <header>
   <h1>This page is a row in the executable that served it.</h1>
   <p class="lede">
-    There is one file on that server. It is a <strong>SQLite database</strong>
-    &mdash; <code>file(1)</code> says so &mdash; and it is also the program
+    There is one file on that server. It is a <strong>SQLite database</strong>,
+    <code>file(1)</code> says so, and it is also the program
     the kernel executed to answer this request. The HTML you are reading came
     out of <code>SELECT body FROM routes WHERE path = '/index.html'</code>,
     run by the process whose own machine code lives three tables over.
@@ -107,25 +107,13 @@ $ sqlite3 server 'SELECT count(*), ua FROM visits
                   GROUP BY ua ORDER BY 1 DESC LIMIT 3'
 
 $ sqldiff --summary yesterday.server server  # what did the deploy touch?</code></pre>
-  <p class="note">
-    <a href="https://redbean.dev">redbean</a> gets to the same single-file
-    place by stapling a ZIP to an Actually Portable Executable, and it wins
-    on portability outright: six operating systems, two architectures, one
-    file. This runs on Linux only, and only once <code>binfmt_misc</code>
-    knows the magic. What it buys instead is that the container is a query
-    engine &mdash; the site, the symbol table and the visitor log are all
-    rows, in one file, under one transaction.
-  </p>
 </section>
 
 <footer>
   <p>
     Written up in
-    <a href="https://fzakaria.com/2026/08/23/your-executable-is-a-sqlite-database">Your
-    executable is a SQLite database</a> &middot;
-    source at <a href="https://github.com/fzakaria/selfdb">fzakaria/selfdb</a>
-    under <code>examples/server</code> &middot; hosted on
-    <a href="https://exe.dev">exe.dev</a>
+    <a href="https://fzakaria.com/2026/08/24/actually-queryable-executables">Actually Queryable Executables</a> &middot;
+    source at <a href="https://github.com/fzakaria/selfdb/tree/main/examples/server">fzakaria/selfdb</a>
   </p>
 </footer>
 
