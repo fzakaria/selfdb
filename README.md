@@ -31,7 +31,11 @@ Hello, world!
 - `nix/` — packages, a `selfify` hook, a NixOS module (`programs.self`), and
   `self-vm`.
 - `schema/self.sql` — the format DDL (generated from `selfconv/schema.py`).
-- `bench/`, `tests/` — the evaluation harness and the M0–M3b test suite.
+- `examples/server/` — **self-httpd**: a webserver whose pages, program and
+  visitor log are one file. It opens `argv[0]` as a database and serves out of
+  its own `routes` table; editing the live site is an `UPDATE`. Live at
+  <https://selfdb.exe.xyz>.
+- `bench/`, `tests/` — the evaluation harness and the test suite.
 
 Read [DESIGN.md](./DESIGN.md); §13 tracks implementation status.
 
@@ -43,4 +47,7 @@ $ nix develop -c bash tests/all.sh   # run M0..M3b end to end
 $ nix develop -c bash tests/showcase.sh
 $ nix run .#self-vm                  # a NixOS VM where ./hello.self just runs
                                      # (login: root, empty password)
+
+$ bash examples/server/build.sh ./server   # a website, inserted into a program
+$ loader/self-exec ./server 8080           # http://localhost:8080
 ```

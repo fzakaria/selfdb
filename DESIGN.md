@@ -545,6 +545,7 @@ selfdb/
   loader/              # self-exec (C, libsqlite3)
   nix/                 # selfifyHook, NixOS module, self-vm
   bench/               # hyperfine + size + pss harnesses
+  examples/server/     # self-httpd: a webserver that is its own database
 ```
 
 - **M0** (format): `schema/self.sql`, `elf2self`/`self2elf`, round-trip test
@@ -591,6 +592,7 @@ all with `nix develop -c bash tests/all.sh`; boot the VM with
 | **M3a** LD_AUDIT resolver | ✅ done | `loader/audit.c` (`libself-audit.so`); `tests/audit.sh` deletes the ELF `libgreet`, runs it from SQLite via stock glibc |
 | **M3b** self-ld binder | ✅ done (freestanding) | `loader/selfld.c`; `tests/selfld.sh` binds a no-libc app→lib closure via SQL, exit 42 |
 | **M4** kernel / mmap | ⏸ not started | stretch; see §8 |
+| **example** single-file webserver | ✅ done | `examples/server/`; the program opens `argv[0]` and serves out of `routes`, writing `visits`/`presses` back into itself. `tests/server.sh`; deployed at <https://selfdb.exe.xyz> |
 
 ### Deviations from the design
 

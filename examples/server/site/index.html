@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>this webserver is a SQLite database</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<header>
+  <h1>This page is a row in the executable that served it.</h1>
+  <p class="lede">
+    There is one file on that server. It is a <strong>SQLite database</strong>
+    &mdash; <code>file(1)</code> says so &mdash; and it is also the program
+    the kernel executed to answer this request. The HTML you are reading came
+    out of <code>SELECT body FROM routes WHERE path = '/index.html'</code>,
+    run by the process whose own machine code lives three tables over.
+  </p>
+</header>
+
+<section>
+  <h2>The file</h2>
+  <pre><code>$ file server
+server: SQLite 3.x database, application id 1397050438, user version 1, ...
+
+$ xxd -s 64 -l 8 server     # 1397050438 == 0x53454c46, the binfmt magic
+00000040: 0000 0000 5345 4c46                      ....SELF
+
+$ ./server --journal wal 8080
+self-httpd: serving {{routes}} routes out of /srv/self/server
+self-httpd: listening on http://0.0.0.0:8080 with 4 workers (journal=wal)
+
+$ sqlite3 server 'SELECT path, mime, bytes FROM site'</code></pre>
+  <p>
+    The format is <strong>SELF</strong>, the Structured Executable &amp;
+    Linkable Format: an ELF program rewritten as rows. <code>segments</code>
+    holds the load image, <code>symbols</code> replaces
+    <code>.dynsym</code> plus <code>.gnu.hash</code>, and a
+    <code>binfmt_misc</code> interpreter maps the rows and jumps to
+    <code>{{entry}}</code>. Nothing holds the file open once the program is
+    running, so the program can open its own path as a database and serve out
+    of it.
+  </p>
+</section>
+
+<section>
+  <h2>What is in it, right now</h2>
+  <p class="note">
+    Every number below is a <code>SELECT</code> against this file, evaluated
+    while it was answering your request.
+  </p>
+  <div class="grid">
+    <div class="stat"><span class="n">{{segments}}</span><span class="k">segments</span></div>
+    <div class="stat"><span class="n">{{symbols}}</span><span class="k">symbols</span></div>
+    <div class="stat"><span class="n">{{relocations}}</span><span class="k">relocations</span></div>
+    <div class="stat"><span class="n">{{needed}}</span><span class="k">needed libraries</span></div>
+    <div class="stat"><span class="n">{{routes}}</span><span class="k">routes</span></div>
+    <div class="stat"><span class="n">{{tables}}</span><span class="k">tables</span></div>
+    <div class="stat"><span class="n" id="visits">{{visits}}</span><span class="k">visits recorded</span></div>
+    <div class="stat"><span class="n" id="presses">{{presses}}</span><span class="k">presses recorded</span></div>
+  </div>
+  <p class="meta">
+    {{file_bytes}} bytes &middot; {{page_size}}-byte pages &middot; {{machine}}
+    &middot; interpreter <code>{{interp}}</code> &middot; SQLite
+    {{sqlite_version}}
+  </p>
+</section>
+
+<section>
+  <h2>Write to it</h2>
+  <p>
+    <code>visits</code> and <code>presses</code> are ordinary tables in the
+    same file. Pressing this button is an <code>INSERT</code> into the
+    executable, committed before the response is written:
+  </p>
+  <p class="press">
+    <button id="press">press</button>
+    <span id="pressed"></span>
+  </p>
+  <pre><code>CREATE TABLE presses (id INTEGER PRIMARY KEY, at TEXT, button TEXT);
+INSERT INTO presses (at, button) VALUES (datetime('now'), 'press');</code></pre>
+</section>
+
+<section>
+  <h2>Its own table of contents</h2>
+  <p class="note">
+    <code>sqlite_schema</code> is this format's section header table, so the
+    list below is <code>readelf -S</code> with the row counts filled in.
+  </p>
+  <table id="tables"><tbody><tr><td>loading&hellip;</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Deploying is <code>scp</code>. Editing is a transaction.</h2>
+  <p>
+    There is no asset bundle, no template directory, and no restart. The site
+    is data in the running program, so changing it is SQL, and undoing the
+    change is <code>ROLLBACK</code>:
+  </p>
+  <pre><code>$ sqlite3 server "UPDATE routes SET body = readfile('new.html')
+                  WHERE path = '/index.html'"
+$ curl -s https://selfdb.exe.xyz | head -1   # already served, no restart
+
+$ sqlite3 server 'SELECT count(*), ua FROM visits
+                  GROUP BY ua ORDER BY 1 DESC LIMIT 3'
+
+$ sqldiff --summary yesterday.server server  # what did the deploy touch?</code></pre>
+  <p class="note">
+    <a href="https://redbean.dev">redbean</a> gets to the same single-file
+    place by stapling a ZIP to an Actually Portable Executable, and it wins
+    on portability outright: six operating systems, two architectures, one
+    file. This runs on Linux only, and only once <code>binfmt_misc</code>
+    knows the magic. What it buys instead is that the container is a query
+    engine &mdash; the site, the symbol table and the visitor log are all
+    rows, in one file, under one transaction.
+  </p>
+</section>
+
+<footer>
+  <p>
+    Written up in
+    <a href="https://fzakaria.com/2026/08/23/your-executable-is-a-sqlite-database">Your
+    executable is a SQLite database</a> &middot;
+    source at <a href="https://github.com/fzakaria/selfdb">fzakaria/selfdb</a>
+    under <code>examples/server</code> &middot; hosted on
+    <a href="https://exe.dev">exe.dev</a>
+  </p>
+</footer>
+
+<script>
+// Every value the page refreshes comes from a query against the executable.
+async function refresh() {
+  const stats = await (await fetch('/api/stats')).json();
+  for (const key of ['visits', 'presses']) {
+    document.getElementById(key).textContent = stats[key];
+  }
+}
+
+document.getElementById('press').addEventListener('click', async (event) => {
+  event.target.disabled = true;
+  const result = await (await fetch('/api/press', {method: 'POST', body: 'press'})).json();
+  document.getElementById('presses').textContent = result.presses;
+  document.getElementById('pressed').textContent =
+      '→ INSERT committed; presses = ' + result.presses;
+  event.target.disabled = false;
+});
+
+// The row counts are read out of sqlite_schema on every load.
+(async () => {
+  const tables = await (await fetch('/api/tables')).json();
+  document.querySelector('#tables tbody').innerHTML = tables
+      .map((t) => `<tr><td><code>${t.name}</code></td><td>${t.rows}</td></tr>`)
+      .join('');
+  await refresh();
+})();
+</script>
+
+</body>
+</html>

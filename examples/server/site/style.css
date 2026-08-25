@@ -1,0 +1,135 @@
+/* Served from `routes`, same as the page: SELECT body WHERE path='/style.css'. */
+
+:root {
+  --bg: #0f1115;
+  --panel: #161a21;
+  --ink: #d7dae0;
+  --dim: #8a929e;
+  --rule: #262c36;
+  --accent: #e0533d;
+  --link: #7cb3ff;
+  --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 3rem 1.25rem 5rem;
+  max-width: 46rem;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+section { margin: 2.75rem 0; }
+p { margin: 0 0 1rem; }
+.lede { font-size: 1.05rem; color: var(--ink); }
+.note, .meta { color: var(--dim); font-size: 0.9rem; }
+.meta { font-family: var(--mono); }
+
+a { color: var(--link); }
+a:hover { color: var(--accent); }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: #f0c674;
+}
+
+pre {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+pre code {
+  color: var(--ink);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+/* the live counters: one SELECT each */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.7rem 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.stat .n {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  color: var(--accent);
+}
+
+.stat .k {
+  font-size: 0.78rem;
+  color: var(--dim);
+  text-transform: lowercase;
+}
+
+.press { display: flex; align-items: center; gap: 0.85rem; }
+
+button {
+  padding: 0.5rem 1.4rem;
+  font: 600 0.95rem var(--mono);
+  color: var(--bg);
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.5; cursor: wait; }
+#pressed { font-family: var(--mono); font-size: 0.85rem; color: var(--dim); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+td:last-child { text-align: right; color: var(--dim); }
+
+footer {
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  color: var(--dim);
+  font-size: 0.85rem;
+}

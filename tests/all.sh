@@ -3,8 +3,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 
-for t in roundtrip loader audit selfld preload closure multiclosure; do
+for t in roundtrip loader audit selfld preload closure multiclosure server; do
 	printf '\n\033[1m=== tests/%s.sh ===\033[0m\n' "$t"
 	bash "$here/$t.sh"
 done
-printf '\n\033[32mALL SELF TESTS PASSED (M0 M1 M2 M3a M3b)\033[0m\n'
+printf '\n\033[32mALL SELF TESTS PASSED (M0 M1 M2 M3a M3b + examples)\033[0m\n'
